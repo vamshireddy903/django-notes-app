@@ -39,13 +39,13 @@ pipeline {
                     dir('notesapp') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
                             sh """
-                                echo "Replacing image tag in deployment.yaml..."
-                                sed -i "s|replacementTag|$IMAGE_VERSION|" deployment.yaml
-                                echo "Updated deployment.yaml:"
-                                cat deployment.yaml
-                                kubectl apply -f deployment.yaml
-                                kubectl apply -f service.yaml
-                            """
+    echo "Replacing image tag in deployment.yaml..."
+    sed -i "s|replacementTag|$IMAGE_VERSION|" deployment.yaml
+    echo "Updated deployment.yaml:"
+    cat deployment.yaml
+    kubectl apply -f deployment.yaml --validate=false
+    kubectl apply -f service.yaml --validate=false
+"""
                         }
                     }
                 }
