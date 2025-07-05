@@ -48,10 +48,10 @@ pipeline {
                             withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
                                 sh "sed -i 's|image: .*|image: ${dockerhubuser}/mydjango-app:${IMAGE_VERSION}|' deployment.yaml"
                             }
-
+                            sh 'kubectl delete --all pods'
                             sh 'kubectl apply -f deployment.yaml'
                             sh 'kubectl apply -f service.yaml'
-                            sh 'kubectl rollout status deployment/mydjango-deployment'
+
                         }
                     }
                 }
