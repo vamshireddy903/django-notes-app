@@ -6,9 +6,11 @@ pipeline {
     }
 
     stages {
-        stage('Code checkout') {
+        stage('Code Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'github', url: 'https://github.com/vamshireddy903/django-notes-app.git'
+                git branch: 'main',
+                    credentialsId: 'github',
+                    url: 'https://github.com/vamshireddy903/django-notes-app.git'
             }
         }
 
@@ -27,44 +29,40 @@ pipeline {
                         docker login -u $dockerhubuser -p $dockerhubpass
                         docker tag django-image $dockerhubuser/mydjango-app:$IMAGE_VERSION
                         docker push $dockerhubuser/mydjango-app:$IMAGE_VERSION
-                        echo "Image pushed: $dockerhubuser/mydjango-app:$IMAGE_VERSION"
                     """
                 }
             }
         }
 
-       stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            dir('notesapp') {
-                withKubeConfig(credentialsId: 'kubernetes') {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                        sh """
-                            echo "Replacing image tag in deployment.yaml..."
-                            sed -i "s|replacementTag|$IMAGE_VERSION|" deployment.yaml
-                            echo "Updated deployment.yaml:"
-                            cat deployment.yaml
-                            kubectl apply -f deployment.yaml
-                            kubectl apply -f service.yaml
-                        """
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    dir('notesapp') {
+                        withKubeConfig(credentialsId: 'kubernetes') {
+                            sh """
+                                echo "Replacing image tag in deployment.yaml..."
+                                sed -i "s|replacementTag|$IMAGE_VERSION|" deployment.yaml
+                                echo "Updated deployment.yaml:"
+                                cat deployment.yaml
+                                kubectl apply -f deployment.yaml
+                                kubectl apply -f service.yaml
+                            """
+                        }
                     }
                 }
             }
         }
-    }
-}
-
 
         stage('Push Updated Manifest to GitHub') {
             steps {
                 dir('notesapp') {
-                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
                         sh '''
                             git config user.email "vamshireddy903@example.com"
                             git config user.name "vamshireddy903"
                             git add deployment.yaml
                             git commit -m "Update deployment image to version v$BUILD_NUMBER" || echo "No changes to commit"
-                            git push https://$GITHUB_TOKEN@github.com/vamshireddy903/django-notes-app.git HEAD:main
+                            git push https://$GIT_USER:$GIT_PASS@github.com/vamshireddy903/django-notes-app.git HEAD:main
                         '''
                     }
                 }
