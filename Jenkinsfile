@@ -1,69 +1,50 @@
 pipeline {
-    agent any 
-    
-    stages{
-        stage("Clone Code"){
     agent any
 
+    environment {
+        IMAGE_VERSION = "v${BUILD_NUMBER}"
+    }
+
     stages {
-        stage('Code checkout') {
+        stage('Code Checkout') {
             steps {
                 echo "Cloning the code"
-                git url:"https://github.com/LondheShubham153/django-notes-app.git", branch: "main"
                 git branch: 'main', credentialsId: 'github', url: 'https://github.com/vamshireddy903/django-notes-app.git'
             }
         }
-        stage("Build"){
-          stage('Build') {
+
+        stage('Build Docker Image') {
             steps {
-                echo "Building the image"
-                sh "docker build -t my-note-app ."
-                echo 'Docker image build'
-                sh 'docker build -t django-image . '
+                echo "Building Docker image"
+                sh 'docker build -t django-image .'
             }
         }
-        stage("Push to Docker Hub"){
-         stage('Image pushing to dockerhub') {
+
+        stage('Push to Docker Hub') {
             steps {
-                echo "Pushing the image to docker hub"
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker tag my-note-app ${env.dockerHubUser}/my-note-app:latest"
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker push ${env.dockerHubUser}/my-note-app:latest"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        sh """
+                            docker login -u $DOCKER_USER -p $DOCKER_PASS
+                            docker tag django-image $DOCKER_USER/mydjango-app:${IMAGE_VERSION}
+                            docker push $DOCKER_USER/mydjango-app:${IMAGE_VERSION}
+                        """
+                    }
                 }
-                echo 'Pushing image to docker hub'
-                withCredentials([usernamePassword(credentialsId: 'dokcerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                sh "docker login -u ${env.dockerhubuser} -p ${env.dockerhubpass}"
-                sh "docker tag django-image ${env.dockerhubuser}/mydjango-app:latest"
-                sh "docker push ${env.dockerhubuser}/mydjango-app:latest"
-}
             }
         }
-        stage("Deploy"){
+
+        stage('Deploy to Kubernetes') {
             steps {
-                echo "Deploying the container"
-                sh "docker-compose down && docker-compose up -d"
-                
-        
-          stage('Deploy') {
-             steps {
                 script {
                     dir('notesapp') {
-                       withKubeConfig(
-                           caCertificate: '', 
-                           clusterName: '', 
-                           contextName: '', 
-                           credentialsId: 'kubernetes', 
-                           namespace: '', 
-                           restrictKubeConfigAccess: false, 
-                           serverUrl: ''  ) {
-                    sh 'kubectl delete --all pods'
-                    sh 'kubectl apply -f deployment.yaml'
-                    sh 'kubectl apply -f service.yaml'
+                        withKubeConfig(credentialsId: 'kubernetes') {
+                            sh 'kubectl apply -f deployment.yaml'
+                            sh 'kubectl apply -f service.yaml'
+                        }
+                    }
                 }
             }
         }
-    }
-}
     }
 }
