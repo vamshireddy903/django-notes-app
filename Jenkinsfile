@@ -33,32 +33,34 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+       stage('Deploy to Kubernetes') {
     steps {
         script {
-            withKubeConfig(
-                credentialsId: 'kubernetes',
-                caCertificate: '',
-                clusterName: '',
-                contextName: '',
-                namespace: '',
-                restrictKubeConfigAccess: false,
-                serverUrl: ''
-            ) {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                    sh '''
-                        echo "✅ Updating image version in deployment.yaml..."
-                        sed -i "s|image:.*|image: $dockerhubuser/mydjango-app:$IMAGE_VERSION|" notesapp/deployment.yaml
-
-                        echo "📦 Applying Kubernetes manifests..."
-                        kubectl apply -f notesapp/deployment.yaml
-                        kubectl apply -f notesapp/service.yaml
-                    '''
+            dir('notesapp') {
+                withKubeConfig(
+                    credentialsId: 'kubernetes',
+                    caCertificate: '',
+                    clusterName: '',
+                    contextName: '',
+                    namespace: '',
+                    restrictKubeConfigAccess: false,
+                    serverUrl: ''
+                ) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
+                        sh '''
+                            echo "Replacing image tag in deployment.yaml..."
+                            sed -i "s|replacementTag|v${BUILD_NUMBER}|" deployment.yaml
+                            cat deployment.yaml | grep image
+                            kubectl apply -f deployment.yaml
+                            kubectl apply -f service.yaml
+                        '''
+                    }
                 }
             }
         }
     }
 }
+
 
     }
 }
