@@ -1,59 +1,69 @@
 pipeline {
+    agent any 
+    
+    stages{
+        stage("Clone Code"){
     agent any
 
-    environment {
-        IMAGE_VERSION = "v${BUILD_NUMBER}"
-    }
-
     stages {
-        stage('Code Checkout') {
+        stage('Code checkout') {
             steps {
-                git branch: 'main', 
-                    credentialsId: 'github', 
-                    url: 'https://github.com/vamshireddy903/django-notes-app.git'
+                echo "Cloning the code"
+                git url:"https://github.com/LondheShubham153/django-notes-app.git", branch: "main"
+                git branch: 'main', credentialsId: 'github', url: 'https://github.com/vamshireddy903/django-notes-app.git'
             }
         }
-
-        stage('Build Docker Image') {
+        stage("Build"){
+          stage('Build') {
             steps {
-                sh 'docker build -t django-image .'
+                echo "Building the image"
+                sh "docker build -t my-note-app ."
+                echo 'Docker image build'
+                sh 'docker build -t django-image . '
             }
         }
-
-        stage('Push Image to Docker Hub') {
+        stage("Push to Docker Hub"){
+         stage('Image pushing to dockerhub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', 
-                    usernameVariable: 'DOCKER_USER', 
-                    passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        docker login -u $DOCKER_USER -p $DOCKER_PASS
-                        docker tag django-image $DOCKER_USER/mydjango-app:$IMAGE_VERSION
-                        docker push $DOCKER_USER/mydjango-app:$IMAGE_VERSION
-                    """
+                echo "Pushing the image to docker hub"
+                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
+                sh "docker tag my-note-app ${env.dockerHubUser}/my-note-app:latest"
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker push ${env.dockerHubUser}/my-note-app:latest"
+                }
+                echo 'Pushing image to docker hub'
+                withCredentials([usernamePassword(credentialsId: 'dokcerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
+                sh "docker login -u ${env.dockerhubuser} -p ${env.dockerhubpass}"
+                sh "docker tag django-image ${env.dockerhubuser}/mydjango-app:latest"
+                sh "docker push ${env.dockerhubuser}/mydjango-app:latest"
+}
+            }
+        }
+        stage("Deploy"){
+            steps {
+                echo "Deploying the container"
+                sh "docker-compose down && docker-compose up -d"
+                
+        
+          stage('Deploy') {
+             steps {
+                script {
+                    dir('notesapp') {
+                       withKubeConfig(
+                           caCertificate: '', 
+                           clusterName: '', 
+                           contextName: '', 
+                           credentialsId: 'kubernetes', 
+                           namespace: '', 
+                           restrictKubeConfigAccess: false, 
+                           serverUrl: ''  ) {
+                    sh 'kubectl delete --all pods'
+                    sh 'kubectl apply -f deployment.yaml'
+                    sh 'kubectl apply -f service.yaml'
                 }
             }
         }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                dir('notesapp') {
-                    withKubeConfig(
-                        caCertificate: '', 
-                        clusterName: '', 
-                        contextName: '', 
-                        credentialsId: 'kubernetes', 
-                        namespace: '', 
-                        restrictKubeConfigAccess: false, 
-                        serverUrl: ''
-                    ) {
-                        sh """
-                            echo "Applying existing Kubernetes manifests..."
-                            kubectl apply -f deployment.yaml
-                            kubectl apply -f service.yaml
-                        """
-                    }
-                }
-            }
-        }
+    }
+}
     }
 }
