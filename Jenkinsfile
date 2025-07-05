@@ -20,6 +20,7 @@ pipeline {
                 sh "docker login -u ${env.dockerhubuser} -p ${env.dockerhubpass}"
                 sh "docker tag django-image ${env.dockerhubuser}/mydjango-app:latest"
                 sh "docker push ${env.dockerhubuser}/mydjango-app:latest"
+                echo "Successfully pushed the image to the docker hub"
 }
             }
         }
