@@ -44,13 +44,13 @@ pipeline {
                             restrictKubeConfigAccess: false, 
                             serverUrl: ''
                         ) {
-                            // Replace image version in deployment.yaml
                             withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                              sh """
-                              sed -i 's|image: vamshi589/mydjango-app.*|image: vamshi589/mydjango-app:${env.IMAGE_VERSION}|' deployment.yaml
-                               kubectl apply -f deployment.yaml
-                                kubectl apply -f service.yaml
-                                 """
+                                sh """
+                                    sed -i 's|image: .*|image: ${dockerhubuser}/mydjango-app:${IMAGE_VERSION}|' deployment.yaml
+                                    kubectl apply -f deployment.yaml
+                                    kubectl apply -f service.yaml
+                                """
+                            }
                         }
                     }
                 }
