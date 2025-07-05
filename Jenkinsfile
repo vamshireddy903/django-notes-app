@@ -23,44 +23,43 @@ pipeline {
             steps {
                 echo 'Pushing image to Docker Hub'
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                    sh '''
+                    sh """
                         docker login -u $dockerhubuser -p $dockerhubpass
-                        docker tag django-image $dockerhubuser/mydjango-app:$IMAGE_VERSION
-                        docker push $dockerhubuser/mydjango-app:$IMAGE_VERSION
-                        echo "Image pushed: $dockerhubuser/mydjango-app:$IMAGE_VERSION"
-                    '''
+                        docker tag django-image $dockerhubuser/mydjango-app:${IMAGE_VERSION}
+                        docker push $dockerhubuser/mydjango-app:${IMAGE_VERSION}
+                        echo "Image pushed: $dockerhubuser/mydjango-app:${IMAGE_VERSION}"
+                    """
                 }
             }
         }
 
-       stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            dir('notesapp') {
-                withKubeConfig(
-                    credentialsId: 'kubernetes',
-                    caCertificate: '',
-                    clusterName: '',
-                    contextName: '',
-                    namespace: '',
-                    restrictKubeConfigAccess: false,
-                    serverUrl: ''
-                ) {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                        sh '''
-                            echo "Replacing image tag in deployment.yaml..."
-                            sed -i "s|replacementTag|v${BUILD_NUMBER}|" deployment.yaml
-                            cat deployment.yaml | grep image
-                            kubectl apply -f deployment.yaml
-                            kubectl apply -f service.yaml
-                        '''
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    dir('notesapp') {
+                        withKubeConfig(
+                            credentialsId: 'kubernetes',
+                            caCertificate: '',
+                            clusterName: '',
+                            contextName: '',
+                            namespace: '',
+                            restrictKubeConfigAccess: false,
+                            serverUrl: ''
+                        ) {
+                            withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
+                                sh """
+                                    echo "Replacing image tag in deployment.yaml..."
+                                    sed -i 's|replacementTag|${IMAGE_VERSION}|' deployment.yaml
+                                    echo 'Updated deployment.yaml:'
+                                    grep image deployment.yaml
+                                    kubectl apply -f deployment.yaml
+                                    kubectl apply -f service.yaml
+                                """
+                            }
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-
     }
 }
