@@ -35,35 +35,26 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    dir('notesapp') {
-                        withKubeConfig(
-                            credentialsId: 'kubernetes',
-                            caCertificate: '',
-                            clusterName: '',
-                            contextName: '',
-                            namespace: '',
-                            restrictKubeConfigAccess: false,
-                            serverUrl: ''
-                        ) {
-                            withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-                                script {
-                                    def imageName = "${dockerhubuser}/mydjango-app:${IMAGE_VERSION}"
-                                    // replace line in YAML
-                                    sh """
-                                        sed -i 's|image:.*|image: ${imageName}|' deployment.yaml
-                                        echo "Updated deployment.yaml:"
-                                        cat deployment.yaml
-                                        kubectl apply -f deployment.yaml
-                                        kubectl apply -f service.yaml
-                                    """
-                                }
-                            }
-                        }
-                    }
+    steps {
+        script {
+            withKubeConfig(
+                credentialsId: 'kubernetes',
+                caCertificate: '',
+                clusterName: '',
+                contextName: '',
+                namespace: '',
+                restrictKubeConfigAccess: false,
+                serverUrl: ''
+            ) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
+                    def imageName = "${dockerhubuser}/mydjango-app:${IMAGE_VERSION}"
+                    sh "kubectl set image deployment/todo-deployment todo-app=${imageName} --record"
+                    echo "Deployed image: ${imageName} to Kubernetes"
                 }
             }
         }
+    }
+}
+
     }
 }
