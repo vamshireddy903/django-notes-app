@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: todo-app
-        image: sumeetkulkarni/my-note-app
+        image: vamshi589/django-app:v9
         ports: 
         - containerPort: 8000
