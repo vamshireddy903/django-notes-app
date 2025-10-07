@@ -29,4 +29,8 @@ docker build -t django-app .
 docker run -d -p 8000:8000 django-app
 ```
 
-\
+5. Access the application
+
+        http://<EC2 public IP>:8000
+   
+Note: Make SG has allowed 8000 port
