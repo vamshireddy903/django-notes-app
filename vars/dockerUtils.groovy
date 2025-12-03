@@ -6,8 +6,8 @@ def dockerBuild(string imageName) {
     sh 'docker build -t ${imageName} .'
 }
 
-def dockerPush(string imageName, string credID) {
-   withCredentials([usernamePassword(credentialsId: '${credID}', usernameVariable: 'dockerhubuser', passwordVariable: 'dockerhubpass')]){
+def dockerPush(string imageName) {
+   withCredentials([usernamePassword(credentialsId: 'dockerCred', usernameVariable: 'dockerhubuser', passwordVariable: 'dockerhubpass')]){
                   sh '''
                   echo "$dockerhubpass" | docker login -u "$dockerhubuser" --password-stdin
                   docker push ${imageName}
