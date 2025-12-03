@@ -9,7 +9,7 @@ def dockerBuild(String imageName) {
 }
 
 def dockerPush(String imageName) {
-   withCredentials([usernamePassword(credentialsId: 'dockerCred', usernameVariable: 'dockerhubuser', passwordVariable: 'dockerhubpass')]){
+   withCredentials([usernamePassword(credentialsId: 'dockerhubCred', usernameVariable: 'dockerhubuser', passwordVariable: 'dockerhubpass')]){
                   sh """
                   echo "$dockerhubpass" | docker login -u "$dockerhubuser" --password-stdin
                   docker push ${imageName}
