@@ -3,14 +3,16 @@ def cloneCode(String url, String branch) {
 }
 
 def dockerBuild(String imageName) {
-    sh 'docker build -t ${imageName} .'
+    sh """
+    docker build -t ${imageName} .
+    """
 }
 
 def dockerPush(String imageName) {
    withCredentials([usernamePassword(credentialsId: 'dockerCred', usernameVariable: 'dockerhubuser', passwordVariable: 'dockerhubpass')]){
-                  sh '''
+                  sh """
                   echo "$dockerhubpass" | docker login -u "$dockerhubuser" --password-stdin
                   docker push ${imageName}
-                  '''
+                  """
    }
 }
