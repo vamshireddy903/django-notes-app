@@ -13,3 +13,4 @@ def dockerPush(string imageName) {
                   docker push ${imageName}
                   '''
    }
+}
