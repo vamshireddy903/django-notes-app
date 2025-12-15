@@ -1,0 +1,71 @@
+@Library('my-library') _
+pipeline {
+    agent any
+
+    environment {
+        GIT_URL = "https://github.com/vamshireddy903/django-notes-app.git"
+        BRANCH_NAME = "main"
+        IMAGE_NAME = "vamsi011/django-app"
+        TAG = "v1.0.${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${TAG}"
+    }
+
+    stages {
+
+        stage('Code Clone') {
+            steps {
+                script {
+                    dockerUtils.cloneCode(env.GIT_URL, env.BRANCH_NAME)
+                }
+            }
+        }
+
+        stage('Docker Image Build') {
+            steps {
+                script {
+                    dockerUtils.dockerBuild(env.FULL_IMAGE)
+                }
+            }
+        }
+
+        stage('Docker Image Push') {
+            steps {
+                script {
+                    dockerUtils.dockerPush(env.FULL_IMAGE)
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext(
+                subject: "SUCCESS: Job ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """\
+Build Status: SUCCESS
+
+Job Name: ${env.JOB_NAME}
+Build Number: ${env.BUILD_NUMBER}
+Build URL: ${env.BUILD_URL}
+""",
+                to: "vamsir673@gmail.com"
+            )
+        }
+
+        failure {
+            emailext(
+                subject: "FAILURE: Job ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """\
+Build Status: FAILURE ❌
+
+Job Name: ${env.JOB_NAME}
+Build Number: ${env.BUILD_NUMBER}
+Build URL: ${env.BUILD_URL}
+
+Please check console logs for error details.
+""",
+                to: "vamsir673@gmail.com"
+            )
+        }
+    }
+}
